@@ -1,0 +1,33 @@
+{
+  "app": {
+    "name": "seckill-agent",
+    "env": "local",
+    "version": "0.1.0"
+  },
+  "http": {
+    "host": "0.0.0.0",
+    "port": 8070,
+    "read_timeout_seconds": 5,
+    "write_timeout_seconds": 10,
+    "idle_timeout_seconds": 30,
+    "shutdown_timeout_seconds": 10
+  },
+  "log": {
+    "level": "info",
+    "format": "text",
+    "add_source": true
+  },
+  "llm": {
+    "provider": "deepseek",
+    "base_url": "https://api.deepseek.com",
+    "api_key": "replace-with-your-api-key",
+    "model": "deepseek-chat",
+    "timeout_seconds": 20,
+    "max_tokens": 1024,
+    "temperature": 0.2
+  },
+  "agent": {
+    "max_steps": 5,
+    "tool_call_timeout_seconds": 10
+  }
+}
