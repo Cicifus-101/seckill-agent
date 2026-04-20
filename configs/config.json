@@ -29,5 +29,12 @@
   "agent": {
     "max_steps": 5,
     "tool_call_timeout_seconds": 10
+  },
+  "memory": {
+    "max_sessions": 1000,
+    "max_recent_steps": 6,
+    "max_summary_chars": 1200,
+    "max_prompt_tokens": 2000,
+    "session_ttl_seconds": 1800
   }
 }

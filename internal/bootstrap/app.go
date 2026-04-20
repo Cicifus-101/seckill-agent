@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"seckill-agent/internal/agent"
 	"seckill-agent/internal/config"
+	"seckill-agent/internal/contextx"
 	"seckill-agent/internal/llm/deepseek"
+	"seckill-agent/internal/memory"
 	"seckill-agent/internal/prompt"
 	httpserver "seckill-agent/internal/server/http"
 	"seckill-agent/internal/tool"
@@ -33,13 +35,26 @@ func NewApp() (*App, error) {
 
 	llmClient := deepseek.NewClient(cfg.LLM)
 
+	memoryStore := memory.NewInMemoryStore(memory.Config{
+		MaxSessions:       cfg.Memory.MaxSessions,
+		MaxRecentSteps:    cfg.Memory.MaxRecentSteps,
+		MaxSummaryChars:   cfg.Memory.MaxSummaryChars,
+		SessionTTLSeconds: cfg.Memory.SessionTTLSeconds,
+	})
+
+	budget := contextx.Budget{
+		MaxPromptTokens: cfg.Memory.MaxPromptTokens,
+		MaxRecentSteps:  cfg.Memory.MaxRecentSteps,
+		MaxSummaryChars: cfg.Memory.MaxSummaryChars,
+	}
+
 	registry := tool.NewRegistry()
 	registry.Register(&tool.MockCommentAnalysisTool{})
 	registry.Register(&tool.MockCouponPlanTool{})
 	registry.Register(&tool.MockWarmupTool{})
 
 	prompts := prompt.NewManager()
-	ag := agent.New(llmClient, prompts, registry, cfg.Agent.MaxSteps)
+	ag := agent.New(llmClient, prompts, registry, cfg.Agent.MaxSteps, agent.WithMemoryStore(memoryStore, budget))
 	handler := httpserver.NewHandler(cfg, logger, llmClient, ag)
 	server := httpserver.NewServer(cfg.HTTP, handler)
 
@@ -50,6 +65,9 @@ func NewApp() (*App, error) {
 		"http_addr", server.Addr,
 		"llm_provider", cfg.LLM.Provider,
 		"llm_model", cfg.LLM.Model,
+		"memory_max_sessions", cfg.Memory.MaxSessions,
+		"memory_max_recent_steps", cfg.Memory.MaxRecentSteps,
+		"memory_max_prompt_tokens", cfg.Memory.MaxPromptTokens,
 	)
 
 	return &App{

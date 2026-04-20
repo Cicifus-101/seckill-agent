@@ -8,6 +8,7 @@ import (
 	"seckill-agent/internal/agent"
 	"seckill-agent/internal/config"
 	"seckill-agent/internal/llm"
+	"strings"
 	"time"
 )
 
@@ -38,12 +39,15 @@ type chatDebugResponse struct {
 }
 
 type agentRunRequest struct {
-	Task string `json:"task"`
+	SessionID string `json:"session_id,omitempty"`
+	Task      string `json:"task"`
 }
 
 type agentRunResponse struct {
+	SessionID   string       `json:"session_id"`
 	Task        string       `json:"task"`
 	FinalAnswer string       `json:"final_answer"`
+	Summary     string       `json:"summary,omitempty"`
 	Steps       []agent.Step `json:"steps"`
 }
 
@@ -114,15 +118,20 @@ func (h *Handler) handleAgentRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Task == "" {
+	if strings.TrimSpace(req.Task) == "" {
 		writeError(w, http.StatusBadRequest, "task is required")
 		return
+	}
+
+	sessionID := strings.TrimSpace(req.SessionID)
+	if sessionID == "" {
+		sessionID = "default"
 	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), time.Duration(h.cfg.LLM.TimeoutSeconds*h.cfg.Agent.MaxSteps)*time.Second)
 	defer cancel()
 
-	res, err := h.agent.Run(ctx, req.Task)
+	res, err := h.agent.RunWithSession(ctx, sessionID, req.Task)
 	if err != nil {
 		h.logger.ErrorContext(r.Context(), "agent run failed", "error", err)
 		writeError(w, http.StatusBadGateway, err.Error())
@@ -130,9 +139,10 @@ func (h *Handler) handleAgentRun(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, agentRunResponse{
+		SessionID:   res.SessionID,
 		Task:        res.Task,
 		FinalAnswer: res.FinalAnswer,
+		Summary:     res.Summary,
 		Steps:       res.Steps,
 	})
-
 }

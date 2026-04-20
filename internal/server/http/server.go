@@ -10,7 +10,7 @@ import (
 func NewServer(cfg config.HTTPConfig, handler *Handler) *http.Server {
 	return &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
-		Handler:           handler.Routes(),
+		Handler:           handler.Routes(), // 注册所有路由
 		ReadTimeout:       time.Duration(cfg.ReadTimeoutSeconds) * time.Second,
 		WriteTimeout:      time.Duration(cfg.WriteTimeoutSeconds) * time.Second,
 		IdleTimeout:       time.Duration(cfg.IdleTimeoutSeconds) * time.Second,

@@ -19,7 +19,9 @@ type Step struct {
 }
 
 type Result struct {
+	SessionID   string `json:"session_id"`
 	Task        string `json:"task"`
 	FinalAnswer string `json:"final_answer"`
 	Steps       []Step `json:"steps"`
+	Summary     string `json:"summary,omitempty"`
 }

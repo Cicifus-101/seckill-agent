@@ -12,11 +12,12 @@ import (
 const defaultConfigPath = "config/config.json"
 
 type Config struct {
-	App   AppConfig   `json:"app"`
-	HTTP  HTTPConfig  `json:"http"`
-	Log   LogConfig   `json:"log"`
-	LLM   LLMConfig   `json:"llm"`
-	Agent AgentConfig `json:"agent"`
+	App    AppConfig    `json:"app"`
+	HTTP   HTTPConfig   `json:"http"`
+	Log    LogConfig    `json:"log"`
+	LLM    LLMConfig    `json:"llm"`
+	Agent  AgentConfig  `json:"agent"`
+	Memory MemoryConfig `json:"memory"`
 }
 
 type AppConfig struct {
@@ -53,6 +54,14 @@ type LLMConfig struct {
 type AgentConfig struct {
 	MaxSteps              int `json:"max_steps"`
 	ToolCallTimeoutSecond int `json:"tool_call_timeout_seconds"`
+}
+
+type MemoryConfig struct {
+	MaxSessions       int `json:"max_sessions"`
+	MaxRecentSteps    int `json:"max_recent_steps"`
+	MaxSummaryChars   int `json:"max_summary_chars"`
+	MaxPromptTokens   int `json:"max_prompt_tokens"`
+	SessionTTLSeconds int `json:"session_ttl_seconds"`
 }
 
 func Load() (Config, error) {
@@ -109,6 +118,21 @@ func (c Config) Validate() error {
 	if c.Agent.ToolCallTimeoutSecond <= 0 {
 		return errors.New("agent.tool_call_timeout_seconds must be greater than 0")
 	}
+	if c.Memory.MaxSessions <= 0 {
+		return errors.New("memory.max_sessions must be greater than 0")
+	}
+	if c.Memory.MaxRecentSteps <= 0 {
+		return errors.New("memory.max_recent_steps must be greater than 0")
+	}
+	if c.Memory.MaxSummaryChars <= 0 {
+		return errors.New("memory.max_summary_chars must be greater than 0")
+	}
+	if c.Memory.MaxPromptTokens <= 0 {
+		return errors.New("memory.max_prompt_tokens must be greater than 0")
+	}
+	if c.Memory.SessionTTLSeconds <= 0 {
+		return errors.New("memory.session_ttl_seconds must be greater than 0")
+	}
 	return nil
 }
 
@@ -143,6 +167,13 @@ func defaultConfig() Config {
 		Agent: AgentConfig{
 			MaxSteps:              5,
 			ToolCallTimeoutSecond: 10,
+		},
+		Memory: MemoryConfig{
+			MaxSessions:       1000,
+			MaxRecentSteps:    6,
+			MaxSummaryChars:   1200,
+			MaxPromptTokens:   2000,
+			SessionTTLSeconds: 1800,
 		},
 	}
 }
@@ -181,6 +212,13 @@ func overrideFromEnv(cfg *Config) {
 
 	setInt(&cfg.Agent.MaxSteps, os.Getenv("SECKILL_AGENT_AGENT_MAX_STEPS"))
 	setInt(&cfg.Agent.ToolCallTimeoutSecond, os.Getenv("SECKILL_AGENT_AGENT_TOOL_CALL_TIMEOUT_SECONDS"))
+
+	setInt(&cfg.Memory.MaxSessions, os.Getenv("SECKILL_AGENT_MEMORY_MAX_SESSIONS"))
+	setInt(&cfg.Memory.MaxRecentSteps, os.Getenv("SECKILL_AGENT_MEMORY_MAX_RECENT_STEPS"))
+	setInt(&cfg.Memory.MaxSummaryChars, os.Getenv("SECKILL_AGENT_MEMORY_MAX_SUMMARY_CHARS"))
+	setInt(&cfg.Memory.MaxPromptTokens, os.Getenv("SECKILL_AGENT_MEMORY_MAX_PROMPT_TOKENS"))
+	setInt(&cfg.Memory.SessionTTLSeconds, os.Getenv("SECKILL_AGENT_MEMORY_SESSION_TTL_SECONDS"))
+
 }
 
 func setString(target *string, value string) {
