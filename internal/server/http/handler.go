@@ -128,7 +128,7 @@ func (h *Handler) handleAgentRun(w http.ResponseWriter, r *http.Request) {
 		sessionID = "default"
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), time.Duration(h.cfg.LLM.TimeoutSeconds*h.cfg.Agent.MaxSteps)*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), time.Duration(h.cfg.LLM.TimeoutSeconds*h.cfg.Agent.MaxSteps+h.cfg.Agent.ToolCallTimeoutSeconds*h.cfg.Agent.MaxSteps)*time.Second)
 	defer cancel()
 
 	res, err := h.agent.RunWithSession(ctx, sessionID, req.Task)

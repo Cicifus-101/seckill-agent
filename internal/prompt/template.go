@@ -3,6 +3,7 @@ package prompt
 import (
 	"encoding/json"
 	"fmt"
+	"seckill-agent/internal/contextx"
 	"seckill-agent/internal/tool"
 	"strings"
 )
@@ -33,10 +34,10 @@ func (m *Manager) BuildSystemPrompt(tools []tool.Info) string {
 	return b.String()
 }
 
-func (m *Manager) BuildUserPrompt(task string, history []StepRecord) string {
+func (m *Manager) BuildUserPrompt(task string, history []contextx.StepRecord) string {
 	payload := struct {
-		Task    string       `json:"task"`
-		History []StepRecord `json:"history"`
+		Task    string                `json:"task"`
+		History []contextx.StepRecord `json:"history"`
 	}{
 		Task:    task,
 		History: history,
@@ -44,13 +45,4 @@ func (m *Manager) BuildUserPrompt(task string, history []StepRecord) string {
 
 	data, _ := json.MarshalIndent(payload, "", "  ")
 	return string(data)
-}
-
-type StepRecord struct {
-	Step      int    `json:"step"`
-	ToolName  string `json:"tool_name,omitempty"`
-	Action    string `json:"action"`
-	Arguments string `json:"arguments,omitempty"`
-	Output    string `json:"output,omitempty"`
-	Error     string `json:"error,omitempty"`
 }

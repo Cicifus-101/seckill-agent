@@ -193,8 +193,8 @@ func newTestHandler(t testing.TB, llmClient llm.Client, ag *agent.Agent) *Handle
 			TimeoutSeconds: 5,
 		},
 		Agent: config.AgentConfig{
-			MaxSteps:              5,
-			ToolCallTimeoutSecond: 10,
+			MaxSteps:               5,
+			ToolCallTimeoutSeconds: 10,
 		},
 	}
 

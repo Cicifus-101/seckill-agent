@@ -21,6 +21,9 @@ type Agent struct {
 	memoryStore memory.Store
 	budget      contextx.Budget
 	maxSteps    int
+
+	llmTimeout  time.Duration
+	toolTimeout time.Duration
 }
 
 // 函数类型，实现之后可以选择性进行配置
@@ -36,13 +39,26 @@ func WithMemoryStore(store memory.Store, budget contextx.Budget) Option {
 	}
 }
 
+func WithTimeouts(llmTimeout, toolTimeout time.Duration) Option {
+	return func(a *Agent) {
+		if llmTimeout > 0 {
+			a.llmTimeout = llmTimeout
+		}
+		if toolTimeout > 0 {
+			a.toolTimeout = toolTimeout
+		}
+	}
+}
+
 func New(llmClient llm.Client, prompts *prompt.Manager, registry *tool.Registry, maxSteps int, opts ...Option) *Agent {
 	a := &Agent{
-		llmClient: llmClient,
-		prompts:   prompts,
-		registry:  registry,
-		budget:    contextx.DefaultBudget(),
-		maxSteps:  maxSteps,
+		llmClient:   llmClient,
+		prompts:     prompts,
+		registry:    registry,
+		budget:      contextx.DefaultBudget(),
+		maxSteps:    maxSteps,
+		llmTimeout:  20 * time.Second,
+		toolTimeout: 10 * time.Second,
 	}
 
 	for _, opt := range opts {
@@ -83,10 +99,14 @@ func (a *Agent) RunWithSession(ctx context.Context, sessionID, task string) (Res
 		systemPrompt := a.prompts.BuildSystemPrompt(a.registry.List())
 		userPrompt := a.prompts.BuildUserPrompt(task, history)
 
-		resp, err := a.llmClient.Chat(ctx, llm.ChatRequest{
+		// LLM级超时
+		llmCtx, llmCancel := withTimeoutIfShorter(ctx, a.llmTimeout)
+		resp, err := a.llmClient.Chat(llmCtx, llm.ChatRequest{
 			SystemPrompt: systemPrompt,
 			UserPrompt:   userPrompt,
 		})
+		llmCancel()
+
 		if err != nil {
 			return Result{}, err
 		}
@@ -116,14 +136,18 @@ func (a *Agent) RunWithSession(ctx context.Context, sessionID, task string) (Res
 			return Result{}, fmt.Errorf("tool not found: %s", decision.ToolName)
 		}
 
-		observation, err := t.Execute(ctx, decision.Arguments)
+		// Tool级超时
+		toolCtx, toolCancel := withTimeoutIfShorter(ctx, a.toolTimeout)
+		observation, err := t.Execute(toolCtx, decision.Arguments)
+		toolCancel()
+
 		stepItem := Step{ // 向API进行返回
 			Step:      step,
 			ToolName:  decision.ToolName,
 			Arguments: string(decision.Arguments),
 		}
 
-		record := memory.StepRecord{ // 面向内部记忆系统
+		record := contextx.StepRecord{ // 面向内部记忆系统
 			Step:      step,
 			ToolName:  decision.ToolName,
 			Action:    "tool_call",
@@ -170,7 +194,7 @@ func (a *Agent) bootstrapSession(ctx context.Context, sessionID, task string) {
 	a.memoryStore.Save(ctx, state)
 }
 
-func (a *Agent) appendStep(ctx context.Context, sessionID string, step memory.StepRecord) {
+func (a *Agent) appendStep(ctx context.Context, sessionID string, step contextx.StepRecord) {
 	if a.memoryStore == nil {
 		return
 	}
@@ -184,7 +208,7 @@ func (a *Agent) snapshot(ctx context.Context, sessionID string) memory.View {
 	return a.memoryStore.Snapshot(ctx, sessionID)
 }
 
-func (a *Agent) buildHistory(ctx context.Context, sessionID, task string) []prompt.StepRecord {
+func (a *Agent) buildHistory(ctx context.Context, sessionID, task string) []contextx.StepRecord {
 	if a.memoryStore == nil {
 		return nil
 	}
@@ -192,11 +216,11 @@ func (a *Agent) buildHistory(ctx context.Context, sessionID, task string) []prom
 	view := a.snapshot(ctx, sessionID)
 	compressed := contextx.Compose(view, task, a.budget)
 
-	history := make([]prompt.StepRecord, 0, len(compressed.RecentSteps)+2)
+	history := make([]contextx.StepRecord, 0, len(compressed.RecentSteps)+2)
 
 	// 历史记录的元数据，记录摘要和压缩
 	if compressed.Summary != "" {
-		history = append(history, prompt.StepRecord{
+		history = append(history, contextx.StepRecord{
 			Step:     0,
 			ToolName: "memory",
 			Action:   "memory_summary",
@@ -205,7 +229,7 @@ func (a *Agent) buildHistory(ctx context.Context, sessionID, task string) []prom
 	}
 
 	if compressed.Truncated {
-		history = append(history, prompt.StepRecord{
+		history = append(history, contextx.StepRecord{
 			Step:     0,
 			ToolName: "memory",
 			Action:   "context_truncated",
@@ -214,7 +238,7 @@ func (a *Agent) buildHistory(ctx context.Context, sessionID, task string) []prom
 	}
 
 	for _, item := range compressed.RecentSteps {
-		history = append(history, prompt.StepRecord{
+		history = append(history, contextx.StepRecord{
 			Step:      item.Step,
 			ToolName:  item.ToolName,
 			Action:    item.Action,
@@ -237,5 +261,21 @@ func parseDecision(content string) (Decision, error) {
 	if err := json.Unmarshal([]byte(content), &d); err != nil {
 		return Decision{}, err
 	}
+	if d.Type == "" {
+		return Decision{}, fmt.Errorf("missing decision type")
+	}
 	return d, nil
+}
+
+func withTimeoutIfShorter(parent context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	if timeout <= 0 {
+		return parent, func() {}
+	}
+	if deadline, ok := parent.Deadline(); ok { //看父context是否有deadline
+		remaining := time.Until(deadline)
+		if remaining > 0 && remaining < timeout {
+			return context.WithCancel(parent)
+		}
+	}
+	return context.WithTimeout(parent, timeout) //基于父级再包一层可取消的context
 }

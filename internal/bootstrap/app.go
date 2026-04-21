@@ -54,7 +54,13 @@ func NewApp() (*App, error) {
 	registry.Register(&tool.MockWarmupTool{})
 
 	prompts := prompt.NewManager()
-	ag := agent.New(llmClient, prompts, registry, cfg.Agent.MaxSteps, agent.WithMemoryStore(memoryStore, budget))
+	ag := agent.New(llmClient, prompts, registry, cfg.Agent.MaxSteps,
+		agent.WithMemoryStore(memoryStore, budget),
+		agent.WithTimeouts(
+			time.Duration(cfg.LLM.TimeoutSeconds)*time.Second,
+			time.Duration(cfg.Agent.ToolCallTimeoutSeconds)*time.Second,
+		),
+	)
 	handler := httpserver.NewHandler(cfg, logger, llmClient, ag)
 	server := httpserver.NewServer(cfg.HTTP, handler)
 

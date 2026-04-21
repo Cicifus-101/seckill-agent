@@ -38,7 +38,7 @@ type HTTPConfig struct {
 type LogConfig struct {
 	Level     string `json:"level"`
 	Format    string `json:"format"`
-	AddSource bool   `json:"addSource"`
+	AddSource bool   `json:"add_source"`
 }
 
 type LLMConfig struct {
@@ -52,8 +52,8 @@ type LLMConfig struct {
 }
 
 type AgentConfig struct {
-	MaxSteps              int `json:"max_steps"`
-	ToolCallTimeoutSecond int `json:"tool_call_timeout_seconds"`
+	MaxSteps               int `json:"max_steps"`
+	ToolCallTimeoutSeconds int `json:"tool_call_timeout_seconds"`
 }
 
 type MemoryConfig struct {
@@ -115,7 +115,7 @@ func (c Config) Validate() error {
 	if c.Agent.MaxSteps <= 0 {
 		return errors.New("agent.max_steps must be greater than 0")
 	}
-	if c.Agent.ToolCallTimeoutSecond <= 0 {
+	if c.Agent.ToolCallTimeoutSeconds <= 0 {
 		return errors.New("agent.tool_call_timeout_seconds must be greater than 0")
 	}
 	if c.Memory.MaxSessions <= 0 {
@@ -165,8 +165,8 @@ func defaultConfig() Config {
 			Temperature:    0.2,
 		},
 		Agent: AgentConfig{
-			MaxSteps:              5,
-			ToolCallTimeoutSecond: 10,
+			MaxSteps:               5,
+			ToolCallTimeoutSeconds: 10,
 		},
 		Memory: MemoryConfig{
 			MaxSessions:       1000,
@@ -211,7 +211,7 @@ func overrideFromEnv(cfg *Config) {
 	setFloat(&cfg.LLM.Temperature, os.Getenv("SECKILL_AGENT_LLM_TEMPERATURE"))
 
 	setInt(&cfg.Agent.MaxSteps, os.Getenv("SECKILL_AGENT_AGENT_MAX_STEPS"))
-	setInt(&cfg.Agent.ToolCallTimeoutSecond, os.Getenv("SECKILL_AGENT_AGENT_TOOL_CALL_TIMEOUT_SECONDS"))
+	setInt(&cfg.Agent.ToolCallTimeoutSeconds, os.Getenv("SECKILL_AGENT_AGENT_TOOL_CALL_TIMEOUT_SECONDS"))
 
 	setInt(&cfg.Memory.MaxSessions, os.Getenv("SECKILL_AGENT_MEMORY_MAX_SESSIONS"))
 	setInt(&cfg.Memory.MaxRecentSteps, os.Getenv("SECKILL_AGENT_MEMORY_MAX_RECENT_STEPS"))

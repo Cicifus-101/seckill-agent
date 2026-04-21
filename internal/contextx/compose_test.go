@@ -3,18 +3,16 @@ package contextx
 import (
 	"strings"
 	"testing"
-
-	"seckill-agent/internal/memory"
 )
 
 func TestCompose_TrimsByBudget(t *testing.T) {
 	t.Parallel()
 
-	view := memory.View{
+	view := View{
 		SessionID: "session-1",
 		Task:      "test task",
 		Summary:   strings.Repeat("啊", 100),
-		RecentSteps: []memory.StepRecord{
+		RecentSteps: []StepRecord{
 			{Step: 1, Action: "tool_call", ToolName: "t1", Arguments: strings.Repeat("x", 100)},
 			{Step: 2, Action: "tool_call", ToolName: "t2", Arguments: strings.Repeat("x", 100)},
 			{Step: 3, Action: "tool_call", ToolName: "t3", Arguments: strings.Repeat("x", 100)},
@@ -35,5 +33,13 @@ func TestCompose_TrimsByBudget(t *testing.T) {
 	}
 	if len([]rune(out.Summary)) > 10 {
 		t.Fatalf("expected summary to be trimmed, got %d runes", len([]rune(out.Summary)))
+	}
+
+	t.Logf("truncated=%v", out.Truncated)
+	t.Logf("summary=%q", out.Summary)
+	t.Logf("recent_steps=%d", len(out.RecentSteps))
+	for i, step := range out.RecentSteps {
+		t.Logf("step[%d]=step=%d tool=%s action=%s args=%s output=%s error=%s",
+			i, step.Step, step.ToolName, step.Action, step.Arguments, step.Output, step.Error)
 	}
 }

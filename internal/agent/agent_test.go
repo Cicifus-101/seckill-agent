@@ -48,6 +48,20 @@ func TestAgent_Run_Success(t *testing.T) {
 	if result.Steps[1].ToolName != "plan_coupon_quota" {
 		t.Fatalf("unexpected second tool: %s", result.Steps[1].ToolName)
 	}
+
+	// 日志打印全流程
+	t.Logf("final_answer=%s", result.FinalAnswer)
+	t.Logf("steps=%d", len(result.Steps))
+	for i, step := range result.Steps {
+		t.Logf("step[%d]=tool=%s args=%s obs=%s err=%s",
+			i, step.ToolName, step.Arguments, step.Observation, step.Error)
+	}
+
+	t.Logf("llm_calls=%d", len(llmClient.Calls))
+	for i, call := range llmClient.Calls {
+		t.Logf("call[%d].system=\n%s", i, call.SystemPrompt)
+		t.Logf("call[%d].user=\n%s", i, call.UserPrompt)
+	}
 }
 
 func TestAgent_Run_UnknownTool(t *testing.T) {

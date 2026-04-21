@@ -2,10 +2,11 @@ package memory
 
 import (
 	"fmt"
+	"seckill-agent/internal/contextx"
 	"strings"
 )
 
-func summarizeSteps(steps []StepRecord) string {
+func summarizeSteps(steps []contextx.StepRecord) string {
 	if len(steps) == 0 {
 		return ""
 	}

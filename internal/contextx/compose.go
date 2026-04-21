@@ -1,19 +1,17 @@
 package contextx
 
-import "seckill-agent/internal/memory"
-
 type CompressedContext struct {
 	SessionID       string
 	Task            string
 	Summary         string
-	RecentSteps     []memory.StepRecord
+	RecentSteps     []StepRecord
 	EstimatedTokens int
 	Truncated       bool
 }
 
-func Compose(view memory.View, task string, budget Budget) CompressedContext {
+func Compose(view View, task string, budget Budget) CompressedContext {
 	summary := trimText(view.Summary, budget.MaxSummaryChars)
-	recent := append([]memory.StepRecord(nil), view.RecentSteps...)
+	recent := append([]StepRecord(nil), view.RecentSteps...)
 	truncated := false
 
 	if budget.MaxRecentSteps > 0 && len(recent) > budget.MaxRecentSteps {

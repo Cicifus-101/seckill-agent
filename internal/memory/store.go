@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"seckill-agent/internal/contextx"
 	"sync"
 	"time"
 )
@@ -9,7 +10,7 @@ import (
 type Store interface {
 	Load(ctx context.Context, sessionID string) (SessionState, bool)
 	Save(ctx context.Context, state SessionState)
-	AppendStep(ctx context.Context, sessionID string, step StepRecord)
+	AppendStep(ctx context.Context, sessionID string, step contextx.StepRecord)
 	Snapshot(ctx context.Context, sessionID string) View
 }
 
@@ -81,7 +82,7 @@ func (s *InMemoryStore) Save(ctx context.Context, state SessionState) {
 	s.evictIfNeeded()
 }
 
-func (s *InMemoryStore) AppendStep(ctx context.Context, sessionID string, step StepRecord) {
+func (s *InMemoryStore) AppendStep(ctx context.Context, sessionID string, step contextx.StepRecord) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -98,7 +99,7 @@ func (s *InMemoryStore) AppendStep(ctx context.Context, sessionID string, step S
 		overflow := len(state.RecentSteps) - s.cfg.MaxRecentSteps
 		if overflow > 0 {
 			state.Summary = mergeSummary(state.Summary, summarizeSteps(state.RecentSteps[:overflow]))
-			state.RecentSteps = append([]StepRecord(nil), state.RecentSteps[overflow:]...)
+			state.RecentSteps = append([]contextx.StepRecord(nil), state.RecentSteps[overflow:]...)
 			state.Summary = trimText(state.Summary, s.cfg.MaxSummaryChars)
 		}
 	}
@@ -117,7 +118,7 @@ func (s *InMemoryStore) Snapshot(ctx context.Context, sessionID string) View {
 		SessionID:   state.SessionID,
 		Task:        state.Task,
 		Summary:     state.Summary,
-		RecentSteps: append([]StepRecord(nil), state.RecentSteps...),
+		RecentSteps: append([]contextx.StepRecord(nil), state.RecentSteps...),
 	}
 }
 
@@ -128,7 +129,7 @@ func normalizeState(state SessionState, cfg Config) SessionState {
 	if len(state.RecentSteps) > cfg.MaxRecentSteps {
 		overflow := len(state.RecentSteps) - cfg.MaxRecentSteps
 		state.Summary = mergeSummary(state.Summary, summarizeSteps(state.RecentSteps[:overflow]))
-		state.RecentSteps = append([]StepRecord(nil), state.RecentSteps[overflow:]...)
+		state.RecentSteps = append([]contextx.StepRecord(nil), state.RecentSteps[overflow:]...)
 		state.Summary = trimText(state.Summary, cfg.MaxSummaryChars)
 	}
 
@@ -137,7 +138,7 @@ func normalizeState(state SessionState, cfg Config) SessionState {
 
 func cloneState(state SessionState) SessionState {
 	cloned := state
-	cloned.RecentSteps = append([]StepRecord(nil), state.RecentSteps...)
+	cloned.RecentSteps = append([]contextx.StepRecord(nil), state.RecentSteps...)
 	return cloned
 }
 

@@ -11,7 +11,7 @@ type Budget struct {
 func DefaultBudget() Budget {
 	return Budget{
 		MaxPromptTokens: 2000,
-		MaxRecentSteps:  8,
+		MaxRecentSteps:  6,
 		MaxSummaryChars: 1200,
 	}
 }

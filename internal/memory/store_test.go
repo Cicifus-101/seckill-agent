@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"fmt"
+	"seckill-agent/internal/contextx"
 	"testing"
 )
 
@@ -18,13 +19,17 @@ func TestInMemoryStore_CompressesOldSteps(t *testing.T) {
 
 	ctx := context.Background()
 	for i := 1; i <= 3; i++ {
-		store.AppendStep(ctx, "session-1", StepRecord{
+		step := contextx.StepRecord{
 			Step:      i,
 			ToolName:  "analyze_comments",
 			Action:    "tool_call",
 			Arguments: fmt.Sprintf(`{"days":%d}`, i),
 			Output:    fmt.Sprintf(`{"ok":%d}`, i),
-		})
+		}
+		store.AppendStep(ctx, "session-1", step)
+
+		t.Logf("append step: step=%d tool=%s action=%s args=%s output=%s",
+			step.Step, step.ToolName, step.Action, step.Arguments, step.Output)
 	}
 
 	view := store.Snapshot(ctx, "session-1")
@@ -33,5 +38,12 @@ func TestInMemoryStore_CompressesOldSteps(t *testing.T) {
 	}
 	if view.Summary == "" {
 		t.Fatal("expected summary to be generated after overflow")
+	}
+
+	t.Logf("snapshot summary=%q", view.Summary)
+	t.Logf("snapshot recent_steps=%d", len(view.RecentSteps))
+	for i, step := range view.RecentSteps {
+		t.Logf("recent[%d]=step=%d tool=%s action=%s args=%s output=%s error=%s",
+			i, step.Step, step.ToolName, step.Action, step.Arguments, step.Output, step.Error)
 	}
 }
