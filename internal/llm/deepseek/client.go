@@ -38,7 +38,7 @@ type chatCompletionResponse struct {
 	ID      string `json:"id"`
 	Model   string `json:"model"`
 	Choices []struct {
-		Message chatMessage `json:"message"`
+		Message chatMessage `json:"message"` // assistant 输出回答
 	} `json:"choices"`
 	// 指针区分是没有错误还是空错误对象
 	Error *struct {
@@ -104,6 +104,7 @@ func (c *Client) Chat(ctx context.Context, req llm.ChatRequest) (llm.ChatRespons
 		return llm.ChatResponse{}, fmt.Errorf("unmarshal deepseek response: %w", err)
 	}
 
+	// 检查是否由候选回复
 	if res.Error != nil {
 		return llm.ChatResponse{}, fmt.Errorf("deepseek api error: %s", res.Error.Message)
 	}

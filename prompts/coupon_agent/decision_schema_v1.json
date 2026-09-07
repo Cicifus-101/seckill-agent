@@ -1,0 +1,13 @@
+{
+  "type": "final",
+  "final_answer": "面向运营可读的最终说明",
+  "action": "GRANT_COUPON | NO_COUPON | MANUAL_REVIEW",
+  "scene": "FIRST_REVIEW | PHOTO_REVIEW_REWARD | GOOD_REVIEW_REWARD | REPURCHASE_INCENTIVE | PRICE_SENSITIVE_INCENTIVE | INVITE_NEW | AFTER_SALE_COMPENSATION | SERVICE_RECOVERY | DISPUTE_REVIEW | HIGH_RISK_REVIEW | review_coupon",
+  "risk_level": "low | medium | high",
+  "reason": "一句话说明核心决策原因",
+  "reasoning": "分点说明评价事实、ES统计、RAG历史和最终判断",
+  "confidence": 0.85,
+  "coupon_suggestion": "",
+  "policy_tags": ["标签"],
+  "need_human_review": false
+}

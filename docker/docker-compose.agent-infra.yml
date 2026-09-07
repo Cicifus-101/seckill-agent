@@ -1,0 +1,50 @@
+services:
+  review-redis:
+    image: redis/redis-stack-server:7.2.0-v10
+    container_name: review-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--requirepass",
+        "${SECKILL_AGENT_REDIS_PASSWORD:-change-me-local}",
+        "--loadmodule",
+        "/opt/redis-stack/lib/redisbloom.so",
+      ]
+    volumes:
+      - review-redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${SECKILL_AGENT_REDIS_PASSWORD:-change-me-local}\" ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  seckill-jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: seckill-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+      - "14250:14250"
+
+  seckill-otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.100.0
+    container_name: seckill-otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    depends_on:
+      - seckill-jaeger
+
+volumes:
+  review-redis-data:

@@ -11,7 +11,7 @@ type errorResponse struct {
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
-	w.WriteHeader(status)
+	w.WriteHeader(status) // 先记录状态码
 	_ = json.NewEncoder(w).Encode(payload)
 }
 

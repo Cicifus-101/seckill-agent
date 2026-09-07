@@ -1,40 +1,113 @@
 {
   "app": {
     "name": "seckill-agent",
-    "env": "local",
+    "env": "prod-like-local",
     "version": "0.1.0"
   },
   "http": {
     "host": "0.0.0.0",
     "port": 8070,
     "read_timeout_seconds": 5,
-    "write_timeout_seconds": 10,
+    "write_timeout_seconds": 240,
     "idle_timeout_seconds": 30,
-    "shutdown_timeout_seconds": 10
+    "shutdown_timeout_seconds": 60
   },
   "log": {
     "level": "info",
-    "format": "text",
-    "add_source": true
+    "format": "json",
+    "add_source": false
   },
   "llm": {
     "provider": "deepseek",
     "base_url": "https://api.deepseek.com",
     "api_key": "replace-with-your-api-key",
     "model": "deepseek-chat",
-    "timeout_seconds": 20,
-    "max_tokens": 1024,
+    "timeout_seconds": 30,
+    "max_tokens": 1200,
     "temperature": 0.2
   },
   "agent": {
-    "max_steps": 5,
-    "tool_call_timeout_seconds": 10
+    "max_steps": 6,
+    "tool_call_timeout_seconds": 12
+  },
+  "agent_job": {
+    "enabled": true,
+    "worker_count": 6,
+    "global_concurrency": 12,
+    "scope_concurrency": 2,
+    "max_retries": 2,
+    "job_ttl_seconds": 604800,
+    "queue_wait_seconds": 1,
+    "run_timeout_seconds": 240,
+    "retry_backoff_seconds": 3,
+    "max_batch_size": 100
   },
   "memory": {
-    "max_sessions": 1000,
-    "max_recent_steps": 6,
-    "max_summary_chars": 1200,
-    "max_prompt_tokens": 2000,
-    "session_ttl_seconds": 1800
+    "max_sessions": 10000,
+    "max_recent_steps": 32,
+    "max_summary_chars": 8000,
+    "session_ttl_seconds": 7200
+  },
+  "prompt_budget": {
+    "max_prompt_tokens": 4000,
+    "max_recent_steps": 8,
+    "max_summary_chars": 2000
+  },
+  "coupon_policy": {
+    "path": "configs/coupon_policy.json",
+    "hot_reload": true,
+    "reload_seconds": 30,
+    "default_validity_days": 14
+  },
+  "redis": {
+    "enabled": true,
+    "addr": "127.0.0.1:6380",
+    "password": "change-me-local",
+    "db": 0,
+    "key_prefix": "seckill-agent:"
+  },
+  "resilience": {
+    "llm_rate_limit": {
+      "enabled": true,
+      "rate_per_second": 4,
+      "burst": 8,
+      "wait_timeout_ms": 3000
+    },
+    "llm_circuit_breaker": {
+      "enabled": true,
+      "max_requests": 4,
+      "interval_seconds": 60,
+      "timeout_seconds": 30,
+      "failure_threshold": 8,
+      "consecutive_successes": 3
+    },
+    "decision_lock": {
+      "enabled": true,
+      "ttl_seconds": 120,
+      "key_prefix": "seckill-agent:lock:"
+    }
+  },
+  "observability": {
+    "enabled": true,
+    "service_name": "seckill-agent",
+    "env": "prod-like-local",
+    "otel_endpoint": "127.0.0.1:4317",
+    "sample_ratio": 0.2,
+    "enable_metrics": true,
+    "metrics_addr": "0.0.0.0:2113"
+  },
+  "review_service": {
+    "base_url": "http://127.0.0.1:8000",
+    "timeout_seconds": 8
+  },
+  "review_job": {
+    "base_url": "http://127.0.0.1:8082",
+    "timeout_seconds": 8
+  },
+  "seckill_service": {
+    "enabled": true,
+    "base_url": "http://127.0.0.1:8001",
+    "grant_path": "/api/v1/seckill/coupon/review/grant",
+    "timeout_seconds": 5
   }
 }

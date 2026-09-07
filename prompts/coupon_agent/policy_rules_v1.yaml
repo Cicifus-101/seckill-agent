@@ -1,0 +1,27 @@
+rules:
+  - name: first_review_reward
+    description: 首评用户且评价为4-5星、无申诉争议时，可判断为FIRST_REVIEW首评送券。
+  - name: good_review_reward
+    description: 5星正向评价且无售后问题、无争议时，可判断为GOOD_REVIEW_REWARD好评返券。
+  - name: photo_review_reward
+    description: 5星好评且hasMedia=true或picInfo非空，优先判断为PHOTO_REVIEW_REWARD晒图/买家秀激励。
+  - name: invite_new_reward
+    description: 4-5星且内容包含推荐朋友、分享链接、同事家人等拉新信号时，可判断为INVITE_NEW拉新券。
+  - name: repurchase_or_price_incentive
+    description: 4到5星且内容包含复购、推荐、价格敏感、还会买，优先判断为复购激励或价格敏感激励。
+  - name: after_sale_compensation
+    description: 1到3星且存在物流、客服、质量问题，应判断为售后相关场景；物流/服务可考虑补偿，质量问题需谨慎。
+  - name: quality_guard
+    description: score<=2且存在质量、破损、掉色、异味、材质、做工等质量问题时，不得自动发券，应人工复核。
+  - name: appeal_guard
+    description: 存在申诉、争议、人工审核标签时，不得自动发券，应need_human_review=true。
+  - name: risk_interpretation
+    description: ES的risk_level表示店铺/用户统计风险，不等于单条评价严重程度；单条强负面评价不能因为ES为low就降级。
+  - name: coupon_granted_guard
+    description: action=GRANT_COUPON仅表示建议发券，实际发放必须由后端和秒杀服务完成。一次评价对同一店铺和具体商品最多实际发券一次；活动、场景、策略版本变化不得导致重复发券。MANUAL_REVIEW和NO_COUPON不得标记为已发券。
+  - name: campaign_product_store_binding
+    description: 自动发券前必须由get_campaign_context确认评价所属店铺、评价对应SKU或SPU、活动、用户四者的绑定和资格；库存、预算、活动状态、商品资格或用户领取上限任一不满足时不得发券。
+  - name: coupon_template_boundary
+    description: LLM只判断scene/action/reason，具体券模板由后端coupon_policy配置映射，例如FIRST_REVIEW映射6元首评新人券，GOOD_REVIEW/PHOTO_REVIEW映射满2000减300，AFTER_SALE_COMPENSATION/SERVICE_RECOVERY映射75折补偿券；LLM不得自行编造券金额、折扣和库存。
+  - name: rag_reference_boundary
+    description: RAG相似评论和历史决策只提供参考证据，不是执行计划；如果历史案例曾发补偿券，但当前评价存在申诉、争议或低分质量问题，必须以当前Evidence和后端DecisionGuard为准，转人工复核。

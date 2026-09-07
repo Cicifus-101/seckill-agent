@@ -1,0 +1,58 @@
+{
+  "version": "v1",
+  "note": "All latency values are acceptance budgets, not measured results.",
+  "corpus": {
+    "correctness_seed_reviews": 30,
+    "performance_target": {
+      "stores": 100,
+      "reviews_per_store": 1000,
+      "decision_chunks_per_review": 1,
+      "vector_dimension": 1024,
+      "hot_store_share": 0.2
+    }
+  },
+  "scenarios": [
+    {
+      "id": "PERF-001-rag-cold-store",
+      "endpoint": "review-job:/v1/agent/rag/retrieve",
+      "workload": {"duration": "5m", "vus": [1, 10, 30], "scope_mix": {"store": 1.0}, "cache": "cold"},
+      "assertions": {"http_error_rate_max": 0.01, "p95_ms_max": 500, "p99_ms_max": 1000},
+      "record": ["vector_ms", "keyword_ms", "bm25_ms", "merge_rerank_ms", "chunks_returned", "retrieval_source_mix"]
+    },
+    {
+      "id": "PERF-002-rag-hot-scope-mix",
+      "endpoint": "review-job:/v1/agent/rag/retrieve",
+      "workload": {"duration": "10m", "vus": [20, 50], "scope_mix": {"store": 0.55, "spu": 0.2, "sku": 0.15, "user": 0.1}, "cache": "warm", "hot_store_share": 0.2},
+      "assertions": {"http_error_rate_max": 0.01, "p95_ms_max": 350, "cross_store_leak_count": 0},
+      "record": ["pg_pool_wait_ms", "es_took_ms", "embedding_ms", "db_rows_scanned", "scope"]
+    },
+    {
+      "id": "PERF-003-agent-e2e-success",
+      "endpoint": "seckill-agent:/api/v1/agent/jobs",
+      "workload": {"duration": "10m", "vus": [1, 8, 16], "case_mix": ["POS-001-repurchase", "POS-003-logistics-extended-keywords", "POS-004-service-extended-keywords"], "llm": "fixed-test-double"},
+      "assertions": {"job_error_rate_max": 0.01, "p95_ms_max": 3000, "duplicate_grant_count": 0},
+      "record": ["evidence_ms", "stats_ms", "rag_ms", "campaign_ms", "parallel_stage_ms", "finalize_ms", "grant_ms", "tool_degraded_rate"]
+    },
+    {
+      "id": "PERF-004-agent-failure-and-retry",
+      "endpoint": "seckill-agent:/api/v1/agent/jobs",
+      "workload": {"duration": "10m", "vus": [4, 12], "case_mix": ["NEG-011-rag-unavailable", "NEG-012-stats-unavailable", "NEG-013-duplicate-grant", "NEG-014-grant-failure"], "llm": "fixed-test-double"},
+      "assertions": {"unexpected_grant_count": 0, "duplicate_grant_count": 0, "decision_persist_success_rate_min": 0.99},
+      "record": ["retry_count", "grant_attempts", "execution_status", "lock_conflict_count", "fallback_rate"]
+    },
+    {
+      "id": "PERF-005-job-stream-recovery",
+      "endpoint": "seckill-agent:/api/v1/agent/jobs",
+      "workload": {"duration": "10m", "vus": [4, 12, 32], "queue": "redis_stream_consumer_group", "faults": ["worker_crash_before_xack", "redis_disconnect_before_xack", "claim_ttl_expired"]},
+      "assertions": {"message_loss_count": 0, "duplicate_coupon_count": 0, "cas_lost_update_count": 0, "recovery_rate_min": 0.99},
+      "record": ["stream_pending_total", "autoclaim_total", "job_attempts", "cas_conflict_count", "queue_wait_ms", "dead_letter_total"]
+    },
+    {
+      "id": "PERF-006-finalizer-lock-lease",
+      "endpoint": "seckill-agent:/api/v1/agent/jobs",
+      "workload": {"duration": "10m", "vus": [2, 8, 16], "same_review_scope": true, "faults": ["finalizer_runtime_over_lock_ttl", "lock_renewal_lost"]},
+      "assertions": {"concurrent_finalizer_success_count_max": 1, "duplicate_coupon_count": 0, "stale_lock_release_count": 0},
+      "record": ["lock_acquire_ms", "lock_renew_count", "lock_renewal_loss_total", "grant_calls", "decision_store_calls"]
+    }
+  ]
+}

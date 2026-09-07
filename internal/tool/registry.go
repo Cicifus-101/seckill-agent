@@ -1,6 +1,9 @@
 package tool
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 type Registry struct {
 	items map[string]Tool
@@ -26,6 +29,9 @@ func (r *Registry) List() []Info {
 	for _, t := range r.items {
 		res = append(res, t.Info())
 	}
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].Name < res[j].Name
+	})
 	return res
 }
 

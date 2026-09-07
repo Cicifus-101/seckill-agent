@@ -1,0 +1,209 @@
+{
+  "version": "v2",
+  "scenes": [
+    {
+      "name": "FIRST_REVIEW",
+      "seckill_scene": "FIRST_REVIEW",
+      "description": "首评送券，鼓励新用户完成首次评价并提升后续复购。",
+      "priority": 70,
+      "conditions": {
+        "score": [4, 5],
+        "is_first_review": true
+      },
+      "decision": {
+        "action": "GRANT_COUPON",
+        "risk_level": "low",
+        "confidence_min": 0.85
+      },
+      "coupon_templates": [
+        {
+          "type": "首评奖励券",
+          "rule": "6元首评新人券",
+          "amount_cent": 300,
+          "threshold_cent": 0,
+          "valid_days": 7
+        }
+      ]
+    },
+    {
+      "name": "GOOD_REVIEW_REWARD",
+      "seckill_scene": "GOOD_REVIEW",  
+      "description": "好评返券，面向无售后风险的正向评价。",
+      "priority": 60,
+      "conditions": {
+        "score": [5]
+      },
+      "decision": {
+        "action": "GRANT_COUPON",
+        "risk_level": "low",
+        "confidence_min": 0.88
+      },
+      "coupon_templates": [
+        {
+          "type": "好评返券",
+          "rule": "满2000减300",
+          "amount_cent": 300,
+          "threshold_cent": 2000,
+          "valid_days": 14
+        }
+      ]
+    },
+    {
+      "name": "PHOTO_REVIEW_REWARD",
+      "seckill_scene": "PHOTO_REVIEW",
+      "description": "晒图返券，鼓励买家秀和图文内容沉淀。",
+      "priority": 90,
+      "conditions": {
+        "score": [5],
+        "has_media": true
+      },
+      "decision": {
+        "action": "GRANT_COUPON",
+        "risk_level": "low",
+        "confidence_min": 0.9
+      },
+      "coupon_templates": [
+        {
+          "type": "满减券",
+          "rule": "满2000减300",
+          "amount_cent": 30000,
+          "threshold_cent": 200000,
+          "valid_days": 14
+        },
+        {
+          "type": "无门槛券",
+          "rule": "5元无门槛",
+          "amount_cent": 500,
+          "threshold_cent": 0,
+          "valid_days": 7
+        }
+      ]
+    },
+    {
+      "name": "AFTER_SALE_COMPENSATION",
+      "seckill_scene": "AFTER_SALE_COMPENSATION",
+      "description": "售后补偿券，用于物流、服务等体验问题的安抚。",
+      "priority": 80,
+      "conditions": {
+        "score": [1, 2, 3],
+        "express_score": [1, 2]
+      },
+      "decision": {
+        "action": "GRANT_COUPON",
+        "risk_level": "medium",
+        "confidence_min": 0.85
+      },
+      "coupon_templates": [
+        {
+          "type": "售后补偿券",
+          "rule": "75折补偿券",
+          "discount": 0.75,
+          "valid_days": 7
+        },
+        {
+          "type": "无门槛券",
+          "rule": "5元无门槛",
+          "amount_cent": 500,
+          "threshold_cent": 0,
+          "valid_days": 7
+        }
+      ]
+    },
+    {
+      "name": "INVITE_NEW",
+      "seckill_scene": "INVITE_NEW",
+      "description": "拉新券，面向明确推荐朋友、分享链接或带新倾向的评价。",
+      "priority": 65,
+      "conditions": {
+        "score": [4, 5],
+        "keywords": ["推荐", "朋友", "分享", "链接", "同事", "家人"]
+      },
+      "decision": {
+        "action": "GRANT_COUPON",
+        "risk_level": "low",
+        "confidence_min": 0.85
+      },
+      "coupon_templates": [
+        {
+          "type": "拉新券",
+          "rule": "满100减10",
+          "amount_cent": 1000,
+          "threshold_cent": 10000,
+          "valid_days": 14
+        }
+      ]
+    },
+    {
+      "name": "REPURCHASE_INCENTIVE",
+      "seckill_scene": "GOOD_REVIEW",
+      "description": "复购激励券，承接复购、价格敏感和推荐意愿。",
+      "priority": 75,
+      "conditions": {
+        "score": [4, 5],
+        "keywords": ["复购", "还会买", "继续买", "再买", "推荐", "优惠", "划算"]
+      },
+      "decision": {
+        "action": "GRANT_COUPON",
+        "risk_level": "low",
+        "confidence_min": 0.85
+      },
+      "coupon_templates": [
+        {
+          "type": "复购券",
+          "rule": "满50减10",
+          "amount_cent": 1000,
+          "threshold_cent": 5000,
+          "valid_days": 14
+        }
+      ]
+    },
+    {
+      "name": "PRICE_SENSITIVE_INCENTIVE",
+      "seckill_scene": "GOOD_REVIEW",
+      "description": "价格敏感激励券，面向关注性价比和优惠活动的正向评价。",
+      "priority": 68,
+      "conditions": {
+        "score": [4, 5],
+        "keywords": ["价格", "便宜", "划算", "性价比", "优惠", "活动"]
+      },
+      "decision": {
+        "action": "GRANT_COUPON",
+        "risk_level": "low",
+        "confidence_min": 0.85
+      },
+      "coupon_templates": [
+        {
+          "type": "价格敏感券",
+          "rule": "满50减10",
+          "amount_cent": 1000,
+          "threshold_cent": 5000,
+          "valid_days": 14
+        }
+      ]
+    },
+    {
+      "name": "SERVICE_RECOVERY",
+      "seckill_scene": "AFTER_SALE_COMPENSATION",
+      "description": "服务挽回券，用于客服响应慢、态度差、未解决问题等服务体验。",
+      "priority": 78,
+      "conditions": {
+        "score": [1, 2, 3],
+        "service_score": [1, 2],
+        "keywords": ["客服", "服务", "回复", "态度", "售后"]
+      },
+      "decision": {
+        "action": "GRANT_COUPON",
+        "risk_level": "medium",
+        "confidence_min": 0.85
+      },
+      "coupon_templates": [
+        {
+          "type": "服务挽回券",
+          "rule": "75折服务补偿券",
+          "discount": 0.75,
+          "valid_days": 7
+        }
+      ]
+    }
+  ]
+}

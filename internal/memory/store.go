@@ -8,10 +8,13 @@ import (
 )
 
 type Store interface {
-	Load(ctx context.Context, sessionID string) (SessionState, bool)
+	// memoryKey identifies one isolated memory record. The agent passes an
+	// execution-scoped key here, not the parent session ID.
+	Load(ctx context.Context, memoryKey string) (SessionState, bool)
 	Save(ctx context.Context, state SessionState)
-	AppendStep(ctx context.Context, sessionID string, step contextx.StepRecord)
-	Snapshot(ctx context.Context, sessionID string) View
+	ClearSession(ctx context.Context, memoryKey string)
+	AppendStep(ctx context.Context, memoryKey string, step contextx.StepRecord)
+	Snapshot(ctx context.Context, memoryKey string) View
 }
 
 type Config struct {
@@ -48,24 +51,25 @@ func NewInMemoryStore(cfg Config) *InMemoryStore {
 	}
 }
 
-func (s *InMemoryStore) Load(ctx context.Context, sessionID string) (SessionState, bool) {
+func (s *InMemoryStore) Load(ctx context.Context, memoryKey string) (SessionState, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if sessionID == "" {
-		sessionID = "default"
+	if memoryKey == "" {
+		memoryKey = "default"
 	}
 
-	state, ok := s.states[sessionID]
+	state, ok := s.states[memoryKey]
 	if !ok {
 		return SessionState{}, false
 	}
 
 	if state.UpdatedAt.Add(time.Duration(s.cfg.SessionTTLSeconds) * time.Second).Before(time.Now()) {
-		delete(s.states, sessionID)
+		delete(s.states, memoryKey)
 		return SessionState{}, false
 	}
 
+	state.MemoryKey = memoryKey
 	return cloneState(state), true
 }
 
@@ -76,22 +80,41 @@ func (s *InMemoryStore) Save(ctx context.Context, state SessionState) {
 	if state.SessionID == "" {
 		state.SessionID = "default"
 	}
+	key := state.MemoryKey
+	if key == "" {
+		key = state.SessionID
+	}
 
-	state = normalizeState(state, s.cfg)
-	s.states[state.SessionID] = cloneState(state)
-	s.evictIfNeeded()
+	state = normalizeState(state, s.cfg) // 会处理 maxSummary和 maxRecentSteps ，超出限制的旧步骤转入Summary
+	state.MemoryKey = key
+	s.states[key] = cloneState(state) // 保存状态，内存实现写入go map，redis实现写入redis key
+	s.evictIfNeeded()                 // 容量淘汰，删除最旧的session
 }
 
-func (s *InMemoryStore) AppendStep(ctx context.Context, sessionID string, step contextx.StepRecord) {
+func (s *InMemoryStore) ClearSession(ctx context.Context, memoryKey string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if sessionID == "" {
-		sessionID = "default"
+	if memoryKey == "" {
+		memoryKey = "default"
 	}
 
-	state := s.states[sessionID]
-	state.SessionID = sessionID
+	delete(s.states, memoryKey)
+}
+
+func (s *InMemoryStore) AppendStep(ctx context.Context, memoryKey string, step contextx.StepRecord) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if memoryKey == "" {
+		memoryKey = "default"
+	}
+
+	state := s.states[memoryKey]
+	if state.SessionID == "" {
+		state.SessionID = memoryKey
+	}
+	state.MemoryKey = memoryKey
 	state.UpdatedAt = time.Now()
 	state.RecentSteps = append(state.RecentSteps, step)
 
@@ -104,18 +127,19 @@ func (s *InMemoryStore) AppendStep(ctx context.Context, sessionID string, step c
 		}
 	}
 
-	s.states[sessionID] = cloneState(state)
+	s.states[memoryKey] = cloneState(state)
 	s.evictIfNeeded()
 }
 
-func (s *InMemoryStore) Snapshot(ctx context.Context, sessionID string) View {
-	state, ok := s.Load(ctx, sessionID)
+func (s *InMemoryStore) Snapshot(ctx context.Context, memoryKey string) View {
+	state, ok := s.Load(ctx, memoryKey)
 	if !ok {
-		return View{SessionID: sessionID}
+		return View{SessionID: memoryKey}
 	}
 
 	return View{
 		SessionID:   state.SessionID,
+		ExecutionID: state.ExecutionID,
 		Task:        state.Task,
 		Summary:     state.Summary,
 		RecentSteps: append([]contextx.StepRecord(nil), state.RecentSteps...),

@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	// 返回空的、顶级的Context
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 

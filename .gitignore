@@ -1,0 +1,25 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.local.json
+
+# Go build/test artifacts
+bin/
+dist/
+coverage.out
+*.test
+
+# IDE and OS files
+.idea/
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local infrastructure data
+docker/data/
+*.log
